@@ -1,0 +1,11 @@
+const express=require("express"),cors=require("cors"),path=require("path"),fs=require("fs"),mongoose=require("mongoose");
+const app=express();app.use(cors());app.use(express.json());
+const recipes=JSON.parse(fs.readFileSync(path.join(__dirname,"data","recipes.json"),"utf8"));
+const recipeSchema=new mongoose.Schema({id:String,name:String,cuisine:String,category:String,difficulty:String,servings:Number,prepMinutes:Number,cookMinutes:Number,image:String,ingredients:Array,steps:Array,tags:Array,description:String},{timestamps:true});
+const Recipe=mongoose.models.Recipe||mongoose.model("Recipe",recipeSchema);
+app.get("/api/health",(req,res)=>res.json({ok:true,service:"NalBheema API",recipes:recipes.length}));
+app.get("/api/recipes",(req,res)=>{const{cuisine,search}=req.query;let out=recipes;if(cuisine&&cuisine!=="All")out=out.filter(r=>r.cuisine.toLowerCase()===String(cuisine).toLowerCase());if(search)out=out.filter(r=>r.name.toLowerCase().includes(String(search).toLowerCase())||r.ingredients.some(i=>i.name.toLowerCase().includes(String(search).toLowerCase())));res.json(out)});
+app.get("/api/recipes/:id",(req,res)=>{const r=recipes.find(x=>x.id===req.params.id);r?res.json(r):res.status(404).json({message:"Recipe not found"})});
+app.post("/api/match",(req,res)=>{const have=(req.body.ingredients||[]).map(x=>String(x).toLowerCase());res.json(recipes.map(r=>{const names=r.ingredients.map(i=>i.name.toLowerCase()),hits=names.filter(n=>have.some(h=>n.includes(h)||h.includes(n))).length;return{...r,matchScore:have.length?Math.min(99,Math.round(35+65*hits/Math.max(1,names.length))):70}}).sort((a,b)=>b.matchScore-a.matchScore))});
+const PORT=process.env.PORT||5000;app.listen(PORT,()=>console.log(`NalBheema API running on http://localhost:${PORT}`));
+if(process.env.MONGODB_URI)mongoose.connect(process.env.MONGODB_URI).then(()=>console.log("MongoDB connected")).catch(e=>console.error("MongoDB:",e.message));
