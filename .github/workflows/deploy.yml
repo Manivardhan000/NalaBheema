@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
@@ -36,16 +36,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build NalBheema
+      - name: Build
         run: npm run build
 
-      - name: Setup GitHub Pages
+      - name: Check dist files
+        run: |
+          echo "=== DIST CONTENTS ==="
+          find dist -maxdepth 2 -type f
+
+      - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload build
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./dist
+          path: dist
 
       - name: Deploy
         id: deployment
